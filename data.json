@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "generated_for": "11-Aug-2026 weekly expiry",
+    "data_as_of": "2026-08-06 EOD (option chain + participant OI), GIFT Nifty as of 2026-08-06/07 morning"
+  },
+  "index_levels": {
+    "nifty_prev_close": 24614.90,
+    "nifty_prev_close_date": "2026-08-06",
+    "gift_nifty_close": 24662.00,
+    "gift_nifty_close_note": "As given/checked; GIFT Nifty printed 24,724 on 06-Aug 08:28 IST per Kotak Neo, so treat 24,662 as indicative and re-verify at 8:30-9:00 AM before open",
+    "implied_gap_pts": 47.10,
+    "implied_gap_pct": 0.19
+  },
+  "chain_summary": {
+    "expiry": "2026-08-11",
+    "total_call_oi": 1989085,
+    "total_put_oi": 1830625,
+    "pcr": 0.92,
+    "max_call_oi_strike": 25000,
+    "max_call_oi": 135650,
+    "max_put_oi_strike": 24000,
+    "max_put_oi": 144432,
+    "strongest_fresh_put_writing_strike": 24600,
+    "strongest_fresh_put_writing_chg": 53936,
+    "strongest_fresh_call_writing_strike": 24700,
+    "strongest_fresh_call_writing_chg": 14201,
+    "call_unwind_strike": 24600,
+    "call_unwind_chg": -36716
+  },
+  "levels": [
+    {"strike": 25000, "type": "resistance", "note": "max call OI overall"},
+    {"strike": 24700, "type": "resistance", "note": "fresh call writing, +14.2K"},
+    {"strike": 24600, "type": "support", "note": "fresh put writing +53.9K, call unwind -36.7K"},
+    {"strike": 24000, "type": "support", "note": "max put OI overall"}
+  ],
+  "participants_aug06": {
+    "FII": {"future_index_long": 27655, "future_index_short": 172773, "option_index_call_long": 504478, "option_index_put_long": 810226, "option_index_call_short": 667523, "option_index_put_short": 422599, "posture": "net short futures, net long puts - hedged/cautious"},
+    "DII": {"future_index_long": 54252, "future_index_short": 19776, "posture": "net long futures, small size"},
+    "Client": {"future_index_long": 183769, "future_index_short": 59902, "posture": "heavy net long futures - contrarian caution"},
+    "Pro": {"future_index_long": 32797, "future_index_short": 46022, "posture": "roughly balanced, slight net short"}
+  },
+  "strategy": {
+    "type": "iron_condor",
+    "legs": [
+      {"action": "sell", "strike": 24800, "option": "CE"},
+      {"action": "buy", "strike": 24900, "option": "CE"},
+      {"action": "sell", "strike": 24600, "option": "PE"},
+      {"action": "buy", "strike": 24450, "option": "PE"}
+    ],
+    "entry_rule": "after first 15-min candle confirms range, avoid 9:15-9:30 volatility",
+    "stop_loss_rule": "15-min candle closes beyond 24800 or below 24450 with volume",
+    "target_rule": "50-60% of collected premium",
+    "range_expected": "24500-24800"
+  }
+}
