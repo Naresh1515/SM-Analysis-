@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nifty Option Seller Terminal</title>
+<style>
+  :root{
+    --bg:#0b0e0d; --panel:#111512; --panel2:#151a17; --line:#232b26;
+    --text:#e8ece9; --muted:#8a938d; --green:#2fd67f; --red:#ff5c5c;
+    --amber:#f0b94d; --accent:#3ab6ff; --mono:'SF Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:var(--mono);margin:0;padding:16px;font-size:13px;}
+  h1{font-size:15px;font-weight:600;margin:0 0 4px;letter-spacing:0.5px;}
+  .sub{color:var(--muted);font-size:11px;margin-bottom:16px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;}
+  .card .label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+  .card .val{font-size:20px;font-weight:600;}
+  .up{color:var(--green);} .down{color:var(--red);} .neutral{color:var(--amber);}
+  .section{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:14px;}
+  .section h2{font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:0 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px;}
+  .level-row{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:4px;margin-bottom:5px;font-size:12px;}
+  .lvl-res{background:rgba(255,92,92,0.08);border-left:3px solid var(--red);}
+  .lvl-sup{background:rgba(47,214,127,0.08);border-left:3px solid var(--green);}
+  .lvl-spot{background:rgba(58,182,255,0.12);border:1px solid var(--accent);font-weight:600;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  th{color:var(--muted);text-align:right;padding:6px 4px;font-weight:500;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);}
+  th:first-child,td:first-child{text-align:center;}
+  td{text-align:right;padding:5px 4px;border-bottom:1px solid var(--line);}
+  tr.atm{background:rgba(58,182,255,0.08);}
+  .strike-cell{font-weight:600;color:var(--accent);}
+  .chain-wrap{max-height:420px;overflow-y:auto;}
+  .bar{height:4px;border-radius:2px;background:var(--line);position:relative;overflow:hidden;margin-top:2px;}
+  .bar-fill{height:100%;position:absolute;left:0;top:0;}
+  .part-row{display:flex;justify-content:space-between;padding:8px 10px;background:var(--panel2);border-radius:4px;margin-bottom:5px;font-size:12px;}
+  .badge{font-size:10px;padding:2px 8px;border-radius:10px;}
+  .badge-short{background:rgba(255,92,92,0.15);color:var(--red);}
+  .badge-long{background:rgba(47,214,127,0.15);color:var(--green);}
+  .badge-warn{background:rgba(240,185,77,0.15);color:var(--amber);}
+  .strat-leg{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;}
+  .strat-leg:last-child{border-bottom:none;}
+  .strat-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding-top:8px;}
+  .refresh{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:8px 14px;border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;}
+  .refresh:hover{border-color:var(--accent);}
+  #status{color:var(--muted);font-size:10px;margin-left:8px;}
+</style>
+</head>
+<body>
+
+<h1>NIFTY OPTION SELLER TERMINAL</h1>
+<div class="sub" id="headerSub">Loading...</div>
+
+<div class="grid" id="topCards"></div>
+
+<div class="section">
+  <h2>Support / Resistance Walls</h2>
+  <div id="levels"></div>
+</div>
+
+<div class="section">
+  <h2>Option Chain <span id="chainMeta" style="color:var(--muted);font-weight:400;text-transform:none;"></span></h2>
+  <div class="chain-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>CALL OI</th><th>CHG OI</th><th>IV</th><th>LTP</th><th>Strike</th><th>LTP</th><th>IV</th><th>CHG OI</th><th>PUT OI</th>
+        </tr>
+      </thead>
+      <tbody id="chainBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Participant Positioning</h2>
+  <div id="participants"></div>
+</div>
+
+<div class="section">
+  <h2>Suggested Trade</h2>
+  <div id="strategy"></div>
+</div>
+
+<button class="refresh" onclick="load()">Refresh data.json</button>
+<span id="status"></span>
+
+<script>
+function fmt(n){ if(n===null||n===undefined) return '-'; return Number(n).toLocaleString('en-IN'); }
+function pct(n){ return (n>0?'+':'') + n.toFixed(2) + '%'; }
+
+async function load(){
+  document.getElementById('status').textContent = 'loading...';
+  try{
+    const res = await fetch('data.json?t=' + Date.now());
+    const d = await res.json();
+    render(d);
+    document.getElementById('status').textContent = 'loaded ' + (d.meta.last_updated || '');
+  }catch(e){
+    document.getElementById('status').textContent = 'error loading data.json: ' + e.message;
+  }
+}
+
+function render(d){
+  const idx = d.index_levels;
+  document.getElementById('headerSub').textContent =
+    d.meta.symbol + ' · expiry ' + d.meta.expiry + ' · data as of ' + d.meta.data_as_of;
+
+  const gapClass = idx.implied_gap_pts >= 0 ? 'up' : 'down';
+  document.getElementById('topCards').innerHTML = `
+    <div class="card">
+      <div class="label">Nifty prev close</div>
+      <div class="val">${fmt(idx.nifty_prev_close)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Gift Nifty close</div>
+      <div class="val">${fmt(idx.gift_nifty_close)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Implied gap</div>
+      <div class="val ${gapClass}">${idx.implied_gap_pts>0?'+':''}${idx.implied_gap_pts} (${pct(idx.implied_gap_pct)})</div>
+    </div>
+    <div class="card">
+      <div class="label">PCR (chain)</div>
+      <div class="val">${d.chain_summary.pcr}</div>
+    </div>
+  `;
+
+  document.getElementById('levels').innerHTML = d.levels.map(l => `
+    <div class="level-row ${l.type==='resistance'?'lvl-res':'lvl-sup'}">
+      <span>${fmt(l.strike)} ${l.type}</span>
+      <span style="color:var(--muted);">${l.note}</span>
+    </div>
+  `).join('') + `
+    <div class="level-row lvl-spot">
+      <span>${fmt(idx.gift_nifty_close)} spot</span>
+      <span>reference</span>
+    </div>
+  `;
+
+  const chain = [...d.option_chain].sort((a,b)=>a.strike-b.strike);
+  const spot = idx.gift_nifty_close;
+  const near = chain.filter(r => Math.abs(r.strike - spot) <= 800);
+  document.getElementById('chainMeta').textContent = '(' + near.length + ' strikes near spot, ' + chain.length + ' total)';
+  const maxOi = Math.max(...near.map(r => Math.max(r.call.oi||0, r.put.oi||0)));
+
+  document.getElementById('chainBody').innerHTML = near.map(r => {
+    const atm = Math.abs(r.strike - spot) < 30 ? 'atm' : '';
+    const cw = maxOi ? Math.round((r.call.oi||0)/maxOi*100) : 0;
+    const pw = maxOi ? Math.round((r.put.oi||0)/maxOi*100) : 0;
+    return `<tr class="${atm}">
+      <td>${fmt(r.call.oi)}<div class="bar"><div class="bar-fill" style="width:${cw}%;background:var(--red);"></div></div></td>
+      <td class="${r.call.chg_oi>=0?'up':'down'}">${r.call.chg_oi>0?'+':''}${fmt(r.call.chg_oi)}</td>
+      <td>${r.call.iv ?? '-'}</td>
+      <td>${r.call.ltp ?? '-'}</td>
+      <td class="strike-cell">${fmt(r.strike)}</td>
+      <td>${r.put.ltp ?? '-'}</td>
+      <td>${r.put.iv ?? '-'}</td>
+      <td class="${r.put.chg_oi>=0?'up':'down'}">${r.put.chg_oi>0?'+':''}${fmt(r.put.chg_oi)}</td>
+      <td>${fmt(r.put.oi)}<div class="bar"><div class="bar-fill" style="width:${pw}%;background:var(--green);"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  const badgeClass = p => p.includes('short') || p.includes('caution') ? 'badge-short' : (p.includes('long') && !p.includes('short') ? 'badge-long' : 'badge-warn');
+  document.getElementById('participants').innerHTML = Object.entries(d.participants_aug06).map(([name,p]) => `
+    <div class="part-row">
+      <span>${name}</span>
+      <span class="badge ${badgeClass(p.posture)}">${p.posture}</span>
+    </div>
+  `).join('');
+
+  const s = d.strategy;
+  document.getElementById('strategy').innerHTML = `
+    <div style="margin-bottom:10px;color:var(--muted);text-transform:uppercase;font-size:10px;letter-spacing:0.5px;">${s.type.replace('_',' ')}</div>
+    ${s.legs.map(l => `<div class="strat-leg"><span style="color:${l.action==='sell'?'var(--red)':'var(--green)'};text-transform:uppercase;">${l.action}</span><span>${fmt(l.strike)} ${l.option}</span></div>`).join('')}
+    <div class="strat-meta"><span>Entry</span><span>${s.entry_rule}</span></div>
+    <div class="strat-meta"><span>Stop loss</span><span>${s.stop_loss_rule}</span></div>
+    <div class="strat-meta"><span>Target</span><span>${s.target_rule}</span></div>
+    <div class="strat-meta"><span>Range</span><span>${s.range_expected}</span></div>
+  `;
+}
+
+load();
+</script>
+</body>
+</html>
