@@ -45,12 +45,57 @@
   .refresh{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:8px 14px;border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;}
   .refresh:hover{border-color:var(--accent);}
   #status{color:var(--muted);font-size:10px;margin-left:8px;}
+  .upload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;}
+  .upload-box{background:var(--panel2);border:1px dashed var(--line);border-radius:6px;padding:12px;}
+  .upload-box .label{color:var(--text);font-size:11px;margin-bottom:2px;}
+  .upload-box .hint{color:var(--muted);font-size:10px;margin-bottom:8px;}
+  .upload-box input[type=file]{width:100%;font-size:10px;color:var(--muted);}
+  .upload-box .tag{display:inline-block;margin-top:6px;font-size:10px;padding:2px 6px;border-radius:3px;}
+  .tag-ok{background:rgba(47,214,127,0.15);color:var(--green);}
+  .tag-none{background:rgba(138,147,141,0.15);color:var(--muted);}
+  .spot-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .spot-row label{font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:4px;}
+  .spot-row input[type=text]{background:var(--bg);border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:4px;font-family:var(--mono);font-size:12px;width:120px;}
+  .apply-btn{background:var(--accent);color:#04202f;border:none;padding:8px 14px;border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;font-weight:600;align-self:flex-end;}
 </style>
 </head>
 <body>
 
 <h1>NIFTY OPTION SELLER TERMINAL</h1>
 <div class="sub" id="headerSub">Loading...</div>
+
+<div class="section">
+  <h2>Upload data</h2>
+  <div class="upload-grid">
+    <div class="upload-box">
+      <div class="label">Last day option chain (EOD)</div>
+      <div class="hint">NSE option-chain CSV export</div>
+      <input type="file" id="fileChainPrev" accept=".csv" />
+      <div id="tagChainPrev" class="tag tag-none">not loaded</div>
+    </div>
+    <div class="upload-box">
+      <div class="label">Live / current day option chain</div>
+      <div class="hint">Same CSV format, re-upload anytime during market hours</div>
+      <input type="file" id="fileChainLive" accept=".csv" />
+      <div id="tagChainLive" class="tag tag-none">not loaded</div>
+    </div>
+    <div class="upload-box">
+      <div class="label">FNO participant OI</div>
+      <div class="hint">NSE participant-wise OI CSV</div>
+      <input type="file" id="fileParticipant" accept=".csv" />
+      <div id="tagParticipant" class="tag tag-none">not loaded</div>
+    </div>
+  </div>
+  <div class="spot-row">
+    <label>Nifty prev close
+      <input type="text" id="inNiftyClose" placeholder="24614.90" />
+    </label>
+    <label>Gift Nifty / current spot
+      <input type="text" id="inSpot" placeholder="24662.00" />
+    </label>
+    <button class="apply-btn" onclick="applyUploads()">Recompute analysis</button>
+  </div>
+</div>
 
 <div class="grid" id="topCards"></div>
 
@@ -86,19 +131,224 @@
 <button class="refresh" onclick="load()">Refresh data.json</button>
 <span id="status"></span>
 
+<script id="embedded-data" type="application/json">{"meta": {"symbol": "NIFTY", "expiry": "2026-08-11", "generated_for": "11-Aug-2026 weekly expiry", "data_as_of": "2026-08-06 EOD (option chain + participant OI)", "last_updated": "2026-08-07T09:00:00+05:30", "note": "Update index_levels and last_updated intraday; full re-pull chain array from live NSE feed during market hours"}, "index_levels": {"nifty_prev_close": 24614.9, "nifty_prev_close_date": "2026-08-06", "gift_nifty_close": 24662.0, "gift_nifty_close_note": "Re-verify at open, GIFT Nifty moves overnight", "implied_gap_pts": 47.1, "implied_gap_pct": 0.19}, "chain_summary": {"total_call_oi": 1989085, "total_put_oi": 1830625, "pcr": 0.92, "max_call_oi_strike": 25000, "max_call_oi": 135650, "max_put_oi_strike": 24000, "max_put_oi": 144432, "strongest_fresh_put_writing_strike": 24600, "strongest_fresh_put_writing_chg": 53936, "strongest_fresh_call_writing_strike": 24700, "strongest_fresh_call_writing_chg": 14201, "call_unwind_strike": 24600, "call_unwind_chg": -36716}, "levels": [{"strike": 25000, "type": "resistance", "note": "max call OI overall"}, {"strike": 24700, "type": "resistance", "note": "fresh call writing, +14.2K"}, {"strike": 24600, "type": "support", "note": "fresh put writing +53.9K, call unwind -36.7K"}, {"strike": 24000, "type": "support", "note": "max put OI overall"}], "participants_aug06": {"FII": {"future_index_long": 27655, "future_index_short": 172773, "option_index_call_long": 504478, "option_index_put_long": 810226, "option_index_call_short": 667523, "option_index_put_short": 422599, "posture": "net short futures, net long puts - hedged/cautious"}, "DII": {"future_index_long": 54252, "future_index_short": 19776, "posture": "net long futures, small size"}, "Client": {"future_index_long": 183769, "future_index_short": 59902, "posture": "heavy net long futures - contrarian caution"}, "Pro": {"future_index_long": 32797, "future_index_short": 46022, "posture": "roughly balanced, slight net short"}}, "strategy": {"type": "iron_condor", "legs": [{"action": "sell", "strike": 24800, "option": "CE"}, {"action": "buy", "strike": 24900, "option": "CE"}, {"action": "sell", "strike": 24600, "option": "PE"}, {"action": "buy", "strike": 24450, "option": "PE"}], "entry_rule": "after first 15-min candle confirms range, avoid 9:15-9:30 volatility", "stop_loss_rule": "15-min candle closes beyond 24800 or below 24450 with volume", "target_rule": "50-60% of collected premium", "range_expected": "24500-24800"}, "option_chain": [{"strike": 21600.0, "call": {"oi": 8.0, "chg_oi": 1.0, "volume": 2.0, "iv": null, "ltp": 3060.0, "chg": 133.4}, "put": {"oi": 49552.0, "chg_oi": -3770.0, "volume": 52511.0, "iv": 39.01, "ltp": 0.55, "chg": -0.3}}, {"strike": 21650.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 1184.0, "chg_oi": 483.0, "volume": 5890.0, "iv": 38.98, "ltp": 0.65, "chg": -0.25}}, {"strike": 21700.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 4008.0, "chg_oi": 105.0, "volume": 7081.0, "iv": 37.77, "ltp": 0.55, "chg": -0.35}}, {"strike": 21750.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 589.0, "chg_oi": 230.0, "volume": 1141.0, "iv": 37.45, "ltp": 0.6, "chg": -0.35}}, {"strike": 21800.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 3131.0, "chg_oi": 917.0, "volume": 7466.0, "iv": 36.82, "ltp": 0.6, "chg": -0.4}}, {"strike": 21850.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 456.0, "chg_oi": 256.0, "volume": 2050.0, "iv": 36.2, "ltp": 0.6, "chg": -0.45}}, {"strike": 21900.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 2204.0, "chg_oi": 907.0, "volume": 5374.0, "iv": 35.58, "ltp": 0.6, "chg": -0.45}}, {"strike": 21950.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 711.0, "chg_oi": 231.0, "volume": 1916.0, "iv": 34.95, "ltp": 0.6, "chg": -0.45}}, {"strike": 22000.0, "call": {"oi": 82.0, "chg_oi": -10.0, "volume": 18.0, "iv": 53.85, "ltp": 2686.15, "chg": 90.5}, "put": {"oi": 19465.0, "chg_oi": -7121.0, "volume": 53813.0, "iv": 34.84, "ltp": 0.7, "chg": -0.35}}, {"strike": 22050.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 457.0, "chg_oi": 185.0, "volume": 2042.0, "iv": 34.86, "ltp": 0.85, "chg": -0.3}}, {"strike": 22100.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 4337.0, "chg_oi": 819.0, "volume": 11212.0, "iv": 33.81, "ltp": 0.75, "chg": -0.4}}, {"strike": 22150.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 1021.0, "chg_oi": 648.0, "volume": 2744.0, "iv": 32.95, "ltp": 0.7, "chg": -0.55}}, {"strike": 22200.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 5812.0, "chg_oi": -831.0, "volume": 11532.0, "iv": 32.54, "ltp": 0.75, "chg": -0.45}}, {"strike": 22250.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 599.0, "chg_oi": 65.0, "volume": 1406.0, "iv": 32.31, "ltp": 0.85, "chg": -0.45}}, {"strike": 22300.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 5544.0, "chg_oi": 1095.0, "volume": 10591.0, "iv": 31.28, "ltp": 0.75, "chg": -0.55}}, {"strike": 22350.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 824.0, "chg_oi": 225.0, "volume": 3206.0, "iv": 31.22, "ltp": 0.9, "chg": -0.45}}, {"strike": 22400.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 4916.0, "chg_oi": -825.0, "volume": 12420.0, "iv": 30.4, "ltp": 0.85, "chg": -0.45}}, {"strike": 22450.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 872.0, "chg_oi": 8.0, "volume": 3980.0, "iv": 30.11, "ltp": 0.95, "chg": -0.4}}, {"strike": 22500.0, "call": {"oi": 35.0, "chg_oi": null, "volume": null, "iv": null, "ltp": 2140.0, "chg": null}, "put": {"oi": 40157.0, "chg_oi": -826.0, "volume": 80875.0, "iv": 29.3, "ltp": 0.9, "chg": -0.55}}, {"strike": 22550.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 1032.0, "chg_oi": 288.0, "volume": 1802.0, "iv": 28.67, "ltp": 0.9, "chg": -0.55}}, {"strike": 22600.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 6114.0, "chg_oi": 642.0, "volume": 12855.0, "iv": 28.34, "ltp": 1.0, "chg": -0.5}}, {"strike": 22650.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 1614.0, "chg_oi": 403.0, "volume": 8728.0, "iv": 27.69, "ltp": 1.0, "chg": -0.5}}, {"strike": 22700.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 5837.0, "chg_oi": 600.0, "volume": 14403.0, "iv": 26.9, "ltp": 0.95, "chg": -0.6}}, {"strike": 22750.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 3043.0, "chg_oi": 193.0, "volume": 12776.0, "iv": 26.41, "ltp": 1.0, "chg": -0.5}}, {"strike": 22800.0, "call": {"oi": 56.0, "chg_oi": null, "volume": null, "iv": null, "ltp": 1690.0, "chg": null}, "put": {"oi": 9880.0, "chg_oi": -4444.0, "volume": 31351.0, "iv": 25.76, "ltp": 1.0, "chg": -0.55}}, {"strike": 22850.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 1858.0, "chg_oi": 158.0, "volume": 12827.0, "iv": 25.25, "ltp": 1.05, "chg": -0.6}}, {"strike": 22900.0, "call": {"oi": 4.0, "chg_oi": 1.0, "volume": 1.0, "iv": null, "ltp": 1733.75, "chg": 613.75}, "put": {"oi": 13319.0, "chg_oi": -2925.0, "volume": 39406.0, "iv": 24.85, "ltp": 1.15, "chg": -0.55}}, {"strike": 22950.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 1813.0, "chg_oi": -61.0, "volume": 15067.0, "iv": 23.96, "ltp": 1.05, "chg": -0.8}}, {"strike": 23000.0, "call": {"oi": 868.0, "chg_oi": null, "volume": 111.0, "iv": 34.89, "ltp": 1684.55, "chg": 139.55}, "put": {"oi": 70100.0, "chg_oi": 5828.0, "volume": 178036.0, "iv": 23.77, "ltp": 1.25, "chg": -0.6}}, {"strike": 23050.0, "call": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}, "put": {"oi": 2337.0, "chg_oi": 480.0, "volume": 11760.0, "iv": 23.32, "ltp": 1.35, "chg": -0.55}}, {"strike": 23100.0, "call": {"oi": 19.0, "chg_oi": null, "volume": null, "iv": null, "ltp": 1501.25, "chg": null}, "put": {"oi": 15531.0, "chg_oi": 318.0, "volume": 47459.0, "iv": 22.66, "ltp": 1.35, "chg": -0.6}}, {"strike": 23150.0, "call": {"oi": 3.0, "chg_oi": null, "volume": null, "iv": null, "ltp": 1415.65, "chg": null}, "put": {"oi": 3485.0, "chg_oi": 47.0, "volume": 25724.0, "iv": 21.9, "ltp": 1.3, "chg": -0.75}}, {"strike": 23200.0, "call": {"oi": 77.0, "chg_oi": null, "volume": null, "iv": null, "ltp": 1352.5, "chg": null}, "put": {"oi": 38491.0, "chg_oi": 831.0, "volume": 119956.0, "iv": 21.42, "ltp": 1.4, "chg": -0.75}}, {"strike": 23250.0, "call": {"oi": 3.0, "chg_oi": null, "volume": null, "iv": null, "ltp": 1208.4, "chg": null}, "put": {"oi": 3201.0, "chg_oi": 207.0, "volume": 30943.0, "iv": 20.67, "ltp": 1.35, "chg": -1.1}}, {"strike": 23300.0, "call": {"oi": 195.0, "chg_oi": null, "volume": 19.0, "iv": null, "ltp": 1358.25, "chg": 43.65}, "put": {"oi": 22955.0, "chg_oi": -1229.0, "volume": 102067.0, "iv": 20.26, "ltp": 1.5, "chg": -1.0}}, {"strike": 23350.0, "call": {"oi": 28.0, "chg_oi": null, "volume": null, "iv": null, "ltp": 1213.5, "chg": null}, "put": {"oi": 5188.0, "chg_oi": -321.0, "volume": 43824.0, "iv": 19.58, "ltp": 1.5, "chg": -1.2}}, {"strike": 23400.0, "call": {"oi": 161.0, "chg_oi": -4.0, "volume": 13.0, "iv": 30.9, "ltp": 1295.8, "chg": 95.05}, "put": {"oi": 43524.0, "chg_oi": 16347.0, "volume": 151275.0, "iv": 18.99, "ltp": 1.55, "chg": -1.25}}, {"strike": 23450.0, "call": {"oi": 6.0, "chg_oi": null, "volume": null, "iv": null, "ltp": 1104.55, "chg": null}, "put": {"oi": 7201.0, "chg_oi": 445.0, "volume": 62348.0, "iv": 18.38, "ltp": 1.6, "chg": -1.45}}, {"strike": 23500.0, "call": {"oi": 1627.0, "chg_oi": -152.0, "volume": 413.0, "iv": 24.17, "ltp": 1180.1, "chg": 67.95}, "put": {"oi": 101423.0, "chg_oi": 13563.0, "volume": 399588.0, "iv": 17.84, "ltp": 1.7, "chg": -1.5}}, {"strike": 23550.0, "call": {"oi": 34.0, "chg_oi": -1.0, "volume": 4.0, "iv": 30.57, "ltp": 1157.6, "chg": 140.1}, "put": {"oi": 7308.0, "chg_oi": -783.0, "volume": 93975.0, "iv": 17.09, "ltp": 1.65, "chg": -1.85}}, {"strike": 23600.0, "call": {"oi": 438.0, "chg_oi": null, "volume": 108.0, "iv": 22.22, "ltp": 1079.65, "chg": 61.85}, "put": {"oi": 46001.0, "chg_oi": 8109.0, "volume": 292770.0, "iv": 16.53, "ltp": 1.75, "chg": -1.85}}, {"strike": 23650.0, "call": {"oi": 106.0, "chg_oi": 17.0, "volume": 37.0, "iv": 26.43, "ltp": 1047.95, "chg": 138.2}, "put": {"oi": 12705.0, "chg_oi": 4340.0, "volume": 150451.0, "iv": 15.78, "ltp": 1.7, "chg": -2.25}}, {"strike": 23700.0, "call": {"oi": 696.0, "chg_oi": 3.0, "volume": 132.0, "iv": 22.18, "ltp": 985.0, "chg": 76.35}, "put": {"oi": 41328.0, "chg_oi": 6716.0, "volume": 386968.0, "iv": 15.42, "ltp": 2.0, "chg": -2.25}}, {"strike": 23750.0, "call": {"oi": 146.0, "chg_oi": -20.0, "volume": 96.0, "iv": 21.59, "ltp": 936.25, "chg": 79.35}, "put": {"oi": 17967.0, "chg_oi": 3667.0, "volume": 231358.0, "iv": 15.0, "ltp": 2.3, "chg": -2.55}}, {"strike": 23800.0, "call": {"oi": 1524.0, "chg_oi": -61.0, "volume": 486.0, "iv": 21.48, "ltp": 889.55, "chg": 79.15}, "put": {"oi": 56143.0, "chg_oi": 7785.0, "volume": 366777.0, "iv": 14.54, "ltp": 2.6, "chg": -2.85}}, {"strike": 23850.0, "call": {"oi": 274.0, "chg_oi": -1.0, "volume": 155.0, "iv": 19.31, "ltp": 834.85, "chg": 78.2}, "put": {"oi": 17199.0, "chg_oi": -2740.0, "volume": 166598.0, "iv": 14.11, "ltp": 3.0, "chg": -3.3}}, {"strike": 23900.0, "call": {"oi": 3174.0, "chg_oi": -193.0, "volume": 825.0, "iv": 19.83, "ltp": 790.95, "chg": 74.35}, "put": {"oi": 53062.0, "chg_oi": 8506.0, "volume": 289474.0, "iv": 13.69, "ltp": 3.5, "chg": -3.9}}, {"strike": 23950.0, "call": {"oi": 557.0, "chg_oi": 27.0, "volume": 375.0, "iv": 18.04, "ltp": 737.5, "chg": 70.15}, "put": {"oi": 18620.0, "chg_oi": 3409.0, "volume": 149101.0, "iv": 13.33, "ltp": 4.2, "chg": -4.6}}, {"strike": 24000.0, "call": {"oi": 11167.0, "chg_oi": -768.0, "volume": 9253.0, "iv": 17.82, "ltp": 691.0, "chg": 75.0}, "put": {"oi": 144432.0, "chg_oi": 30893.0, "volume": 626197.0, "iv": 12.81, "ltp": 4.75, "chg": -5.7}}, {"strike": 24050.0, "call": {"oi": 749.0, "chg_oi": 22.0, "volume": 478.0, "iv": 16.1, "ltp": 637.65, "chg": 64.25}, "put": {"oi": 21091.0, "chg_oi": 8512.0, "volume": 195887.0, "iv": 12.43, "ltp": 5.75, "chg": -7.25}}, {"strike": 24100.0, "call": {"oi": 5518.0, "chg_oi": -173.0, "volume": 3705.0, "iv": 16.12, "ltp": 592.8, "chg": 69.8}, "put": {"oi": 68419.0, "chg_oi": 25767.0, "volume": 416758.0, "iv": 12.06, "ltp": 7.0, "chg": -8.75}}, {"strike": 24150.0, "call": {"oi": 1045.0, "chg_oi": 48.0, "volume": 1579.0, "iv": 15.2, "ltp": 543.55, "chg": 66.25}, "put": {"oi": 22748.0, "chg_oi": 2138.0, "volume": 255242.0, "iv": 11.83, "ltp": 9.05, "chg": -10.85}}, {"strike": 24200.0, "call": {"oi": 17393.0, "chg_oi": -946.0, "volume": 14380.0, "iv": 14.87, "ltp": 498.0, "chg": 67.8}, "put": {"oi": 87737.0, "chg_oi": 5922.0, "volume": 597568.0, "iv": 11.65, "ltp": 11.95, "chg": -12.65}}, {"strike": 24250.0, "call": {"oi": 2769.0, "chg_oi": -107.0, "volume": 5297.0, "iv": 14.35, "ltp": 452.0, "chg": 61.35}, "put": {"oi": 32823.0, "chg_oi": -1039.0, "volume": 356417.0, "iv": 11.33, "ltp": 14.95, "chg": -15.75}}, {"strike": 24300.0, "call": {"oi": 14780.0, "chg_oi": -1014.0, "volume": 33060.0, "iv": 13.47, "ltp": 404.05, "chg": 58.85}, "put": {"oi": 86475.0, "chg_oi": 26872.0, "volume": 766640.0, "iv": 11.15, "ltp": 19.5, "chg": -19.65}}, {"strike": 24350.0, "call": {"oi": 4278.0, "chg_oi": -419.0, "volume": 23807.0, "iv": 13.3, "ltp": 362.1, "chg": 56.3}, "put": {"oi": 34301.0, "chg_oi": 12650.0, "volume": 427837.0, "iv": 10.85, "ltp": 24.6, "chg": -24.5}}, {"strike": 24400.0, "call": {"oi": 21369.0, "chg_oi": -3887.0, "volume": 110298.0, "iv": 13.15, "ltp": 322.0, "chg": 54.8}, "put": {"oi": 80769.0, "chg_oi": 16745.0, "volume": 962425.0, "iv": 10.88, "ltp": 33.45, "chg": -27.35}}, {"strike": 24450.0, "call": {"oi": 6071.0, "chg_oi": -3139.0, "volume": 72480.0, "iv": 12.88, "ltp": 282.45, "chg": 49.55}, "put": {"oi": 33675.0, "chg_oi": 10025.0, "volume": 573160.0, "iv": 10.6, "ltp": 41.9, "chg": -33.8}}, {"strike": 24500.0, "call": {"oi": 42612.0, "chg_oi": -22006.0, "volume": 498202.0, "iv": 12.14, "ltp": 240.05, "chg": 39.65}, "put": {"oi": 89613.0, "chg_oi": 10425.0, "volume": 1408550.0, "iv": 10.4, "ltp": 53.1, "chg": -40.4}}, {"strike": 24550.0, "call": {"oi": 15904.0, "chg_oi": -23668.0, "volume": 426718.0, "iv": 12.08, "ltp": 206.6, "chg": 35.1}, "put": {"oi": 37507.0, "chg_oi": 6556.0, "volume": 1007683.0, "iv": 10.27, "ltp": 67.55, "chg": -45.8}}, {"strike": 24600.0, "call": {"oi": 85122.0, "chg_oi": -36716.0, "volume": 2156560.0, "iv": 11.7, "ltp": 172.1, "chg": 28.2}, "put": {"oi": 131438.0, "chg_oi": 53936.0, "volume": 3100342.0, "iv": 10.06, "ltp": 84.0, "chg": -52.35}}, {"strike": 24650.0, "call": {"oi": 67656.0, "chg_oi": -1978.0, "volume": 2292202.0, "iv": 11.51, "ltp": 142.4, "chg": 22.35}, "put": {"oi": 57638.0, "chg_oi": 35741.0, "volume": 2301248.0, "iv": 10.18, "ltp": 107.45, "chg": -54.55}}, {"strike": 24700.0, "call": {"oi": 128178.0, "chg_oi": 14201.0, "volume": 2358979.0, "iv": 11.52, "ltp": 118.0, "chg": 19.65}, "put": {"oi": 67987.0, "chg_oi": 43226.0, "volume": 1619264.0, "iv": 9.93, "ltp": 130.0, "chg": -61.35}}, {"strike": 24750.0, "call": {"oi": 47934.0, "chg_oi": 9877.0, "volume": 1069222.0, "iv": 11.46, "ltp": 95.85, "chg": 15.25}, "put": {"oi": 12374.0, "chg_oi": 7903.0, "volume": 404990.0, "iv": 9.73, "ltp": 156.7, "chg": -65.15}}, {"strike": 24800.0, "call": {"oi": 102593.0, "chg_oi": -5106.0, "volume": 1478250.0, "iv": 11.38, "ltp": 76.35, "chg": 11.75}, "put": {"oi": 16721.0, "chg_oi": 6986.0, "volume": 434608.0, "iv": 9.63, "ltp": 188.0, "chg": -69.3}}, {"strike": 24850.0, "call": {"oi": 32204.0, "chg_oi": -820.0, "volume": 673443.0, "iv": 11.14, "ltp": 58.2, "chg": 6.6}, "put": {"oi": 4136.0, "chg_oi": 2477.0, "volume": 84859.0, "iv": 9.33, "ltp": 220.8, "chg": -73.2}}, {"strike": 24900.0, "call": {"oi": 89438.0, "chg_oi": -5825.0, "volume": 964582.0, "iv": 11.23, "ltp": 45.95, "chg": 5.15}, "put": {"oi": 5574.0, "chg_oi": 1663.0, "volume": 93600.0, "iv": 8.74, "ltp": 255.0, "chg": -77.85}}, {"strike": 24950.0, "call": {"oi": 25899.0, "chg_oi": 1376.0, "volume": 463565.0, "iv": 11.2, "ltp": 35.0, "chg": 2.5}, "put": {"oi": 1214.0, "chg_oi": 606.0, "volume": 24939.0, "iv": 8.81, "ltp": 297.55, "chg": -76.65}}, {"strike": 25000.0, "call": {"oi": 135650.0, "chg_oi": 97.0, "volume": 1234182.0, "iv": 11.15, "ltp": 26.0, "chg": 0.3}, "put": {"oi": 11042.0, "chg_oi": 1492.0, "volume": 53690.0, "iv": 7.49, "ltp": 335.9, "chg": -82.25}}, {"strike": 25050.0, "call": {"oi": 27685.0, "chg_oi": 1292.0, "volume": 401128.0, "iv": 11.11, "ltp": 19.0, "chg": -1.2}, "put": {"oi": 644.0, "chg_oi": -22.0, "volume": 5795.0, "iv": 7.83, "ltp": 384.2, "chg": -78.5}}, {"strike": 25100.0, "call": {"oi": 98104.0, "chg_oi": 4879.0, "volume": 625338.0, "iv": 11.09, "ltp": 13.7, "chg": -2.0}, "put": {"oi": 1219.0, "chg_oi": 233.0, "volume": 6360.0, "iv": null, "ltp": 426.45, "chg": -82.25}}, {"strike": 25150.0, "call": {"oi": 25999.0, "chg_oi": 1945.0, "volume": 276921.0, "iv": 11.2, "ltp": 10.2, "chg": -2.5}, "put": {"oi": 190.0, "chg_oi": -15.0, "volume": 3043.0, "iv": null, "ltp": 470.65, "chg": -82.6}}, {"strike": 25200.0, "call": {"oi": 81273.0, "chg_oi": 5250.0, "volume": 528882.0, "iv": 11.31, "ltp": 7.55, "chg": -2.75}, "put": {"oi": 890.0, "chg_oi": -31.0, "volume": 3198.0, "iv": null, "ltp": 520.25, "chg": -79.95}}, {"strike": 25250.0, "call": {"oi": 24427.0, "chg_oi": 572.0, "volume": 242270.0, "iv": 11.31, "ltp": 5.25, "chg": -3.1}, "put": {"oi": 170.0, "chg_oi": 32.0, "volume": 556.0, "iv": null, "ltp": 567.6, "chg": -79.8}}, {"strike": 25300.0, "call": {"oi": 68456.0, "chg_oi": 4801.0, "volume": 372948.0, "iv": 11.54, "ltp": 4.05, "chg": -2.8}, "put": {"oi": 293.0, "chg_oi": 35.0, "volume": 440.0, "iv": null, "ltp": 615.25, "chg": -81.0}}, {"strike": 25350.0, "call": {"oi": 20710.0, "chg_oi": 1087.0, "volume": 190706.0, "iv": 11.81, "ltp": 3.2, "chg": -2.55}, "put": {"oi": 68.0, "chg_oi": 6.0, "volume": 57.0, "iv": null, "ltp": 670.45, "chg": -77.8}}, {"strike": 25400.0, "call": {"oi": 63897.0, "chg_oi": 6676.0, "volume": 362429.0, "iv": 11.91, "ltp": 2.3, "chg": -2.35}, "put": {"oi": 198.0, "chg_oi": 61.0, "volume": 356.0, "iv": null, "ltp": 713.5, "chg": -87.4}}, {"strike": 25450.0, "call": {"oi": 12571.0, "chg_oi": -12285.0, "volume": 243019.0, "iv": 12.43, "ltp": 2.1, "chg": -1.95}, "put": {"oi": 1.0, "chg_oi": null, "volume": null, "iv": 27.55, "ltp": 846.75, "chg": null}}, {"strike": 25500.0, "call": {"oi": 103775.0, "chg_oi": 10415.0, "volume": 634096.0, "iv": 12.71, "ltp": 1.7, "chg": -1.65}, "put": {"oi": 1727.0, "chg_oi": -2.0, "volume": 498.0, "iv": null, "ltp": 816.2, "chg": -76.55}}, {"strike": 25550.0, "call": {"oi": 18369.0, "chg_oi": -834.0, "volume": 100772.0, "iv": 12.96, "ltp": 1.35, "chg": -1.65}, "put": {"oi": 24.0, "chg_oi": -1.0, "volume": 6.0, "iv": null, "ltp": 848.9, "chg": -157.9}}, {"strike": 25600.0, "call": {"oi": 88075.0, "chg_oi": -4846.0, "volume": 289375.0, "iv": 13.46, "ltp": 1.25, "chg": -1.35}, "put": {"oi": 51.0, "chg_oi": 1.0, "volume": 51.0, "iv": null, "ltp": 921.3, "chg": -73.6}}, {"strike": 25650.0, "call": {"oi": 22001.0, "chg_oi": 5184.0, "volume": 75082.0, "iv": 13.7, "ltp": 1.0, "chg": -1.2}, "put": {"oi": 9.0, "chg_oi": null, "volume": 9.0, "iv": null, "ltp": 962.0, "chg": -137.05}}, {"strike": 25700.0, "call": {"oi": 75491.0, "chg_oi": 5779.0, "volume": 231980.0, "iv": 14.21, "ltp": 0.95, "chg": -0.8}, "put": {"oi": 20.0, "chg_oi": 11.0, "volume": 33.0, "iv": 18.7, "ltp": 1035.4, "chg": -41.05}}, {"strike": 25750.0, "call": {"oi": 11881.0, "chg_oi": -1339.0, "volume": 40477.0, "iv": 14.52, "ltp": 0.8, "chg": -0.85}, "put": {"oi": 2.0, "chg_oi": 1.0, "volume": 1.0, "iv": null, "ltp": 1060.0, "chg": -110.0}}, {"strike": 25800.0, "call": {"oi": 76301.0, "chg_oi": 3275.0, "volume": 226754.0, "iv": 14.88, "ltp": 0.7, "chg": -0.65}, "put": {"oi": 27.0, "chg_oi": null, "volume": 4.0, "iv": null, "ltp": 1093.15, "chg": -31.85}}, {"strike": 25850.0, "call": {"oi": 13695.0, "chg_oi": 566.0, "volume": 33481.0, "iv": 15.45, "ltp": 0.7, "chg": -0.55}, "put": {"oi": 7.0, "chg_oi": 2.0, "volume": 2.0, "iv": null, "ltp": 1161.0, "chg": -189.0}}, {"strike": 25900.0, "call": {"oi": 57708.0, "chg_oi": -476.0, "volume": 84186.0, "iv": 15.89, "ltp": 0.65, "chg": -0.5}, "put": {"oi": 1.0, "chg_oi": null, "volume": null, "iv": 46.39, "ltp": 1363.05, "chg": null}}, {"strike": 25950.0, "call": {"oi": 11435.0, "chg_oi": 596.0, "volume": 16486.0, "iv": 16.45, "ltp": 0.65, "chg": -0.4}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26000.0, "call": {"oi": 129341.0, "chg_oi": -3390.0, "volume": 231389.0, "iv": 17.0, "ltp": 0.65, "chg": -0.4}, "put": {"oi": 3145.0, "chg_oi": -18.0, "volume": 304.0, "iv": null, "ltp": 1313.7, "chg": -71.5}}, {"strike": 26050.0, "call": {"oi": 7965.0, "chg_oi": -700.0, "volume": 9571.0, "iv": 17.41, "ltp": 0.6, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26100.0, "call": {"oi": 28108.0, "chg_oi": -67.0, "volume": 56871.0, "iv": 17.8, "ltp": 0.55, "chg": -0.4}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26150.0, "call": {"oi": 11271.0, "chg_oi": -300.0, "volume": 12966.0, "iv": 18.34, "ltp": 0.55, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26200.0, "call": {"oi": 3082.0, "chg_oi": 66.0, "volume": 12750.0, "iv": 18.88, "ltp": 0.55, "chg": -0.3}, "put": {"oi": 80.0, "chg_oi": null, "volume": null, "iv": 51.7, "ltp": 1662.0, "chg": null}}, {"strike": 26250.0, "call": {"oi": 1726.0, "chg_oi": 5.0, "volume": 4117.0, "iv": 19.23, "ltp": 0.5, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26300.0, "call": {"oi": 1367.0, "chg_oi": 89.0, "volume": 2762.0, "iv": 19.76, "ltp": 0.5, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26350.0, "call": {"oi": 763.0, "chg_oi": 10.0, "volume": 1176.0, "iv": 20.48, "ltp": 0.55, "chg": -0.3}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26400.0, "call": {"oi": 1597.0, "chg_oi": 191.0, "volume": 5588.0, "iv": 20.6, "ltp": 0.45, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26450.0, "call": {"oi": 390.0, "chg_oi": 51.0, "volume": 1424.0, "iv": 21.12, "ltp": 0.45, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26500.0, "call": {"oi": 6218.0, "chg_oi": 760.0, "volume": 15182.0, "iv": 21.63, "ltp": 0.45, "chg": -0.35}, "put": {"oi": 1.0, "chg_oi": null, "volume": null, "iv": 48.78, "ltp": 1896.45, "chg": null}}, {"strike": 26550.0, "call": {"oi": 385.0, "chg_oi": 200.0, "volume": 1773.0, "iv": 22.15, "ltp": 0.45, "chg": -0.3}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26600.0, "call": {"oi": 756.0, "chg_oi": -842.0, "volume": 7377.0, "iv": 22.66, "ltp": 0.45, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26650.0, "call": {"oi": 1254.0, "chg_oi": 992.0, "volume": 4299.0, "iv": 23.17, "ltp": 0.45, "chg": -0.3}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26700.0, "call": {"oi": 4610.0, "chg_oi": 4208.0, "volume": 20549.0, "iv": 23.42, "ltp": 0.4, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26750.0, "call": {"oi": 253.0, "chg_oi": 81.0, "volume": 603.0, "iv": 24.18, "ltp": 0.45, "chg": -0.25}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26800.0, "call": {"oi": 2096.0, "chg_oi": 217.0, "volume": 5471.0, "iv": 24.42, "ltp": 0.4, "chg": -0.3}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26850.0, "call": {"oi": 372.0, "chg_oi": 9.0, "volume": 1734.0, "iv": 24.91, "ltp": 0.4, "chg": -0.35}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26900.0, "call": {"oi": 719.0, "chg_oi": 304.0, "volume": 2981.0, "iv": 25.68, "ltp": 0.45, "chg": -0.25}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 26950.0, "call": {"oi": 678.0, "chg_oi": 31.0, "volume": 800.0, "iv": 25.9, "ltp": 0.4, "chg": -0.25}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 27000.0, "call": {"oi": 5116.0, "chg_oi": 1120.0, "volume": 14993.0, "iv": 26.4, "ltp": 0.4, "chg": -0.25}, "put": {"oi": 26.0, "chg_oi": null, "volume": null, "iv": 72.1, "ltp": 2501.0, "chg": null}}, {"strike": 27050.0, "call": {"oi": 995.0, "chg_oi": 446.0, "volume": 3056.0, "iv": 26.88, "ltp": 0.4, "chg": -0.25}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 27100.0, "call": {"oi": 1985.0, "chg_oi": 682.0, "volume": 5372.0, "iv": 27.67, "ltp": 0.45, "chg": -0.25}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 27150.0, "call": {"oi": 2394.0, "chg_oi": -39.0, "volume": 6049.0, "iv": 27.86, "ltp": 0.4, "chg": -0.2}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}, {"strike": 27200.0, "call": {"oi": 5341.0, "chg_oi": 1392.0, "volume": 18154.0, "iv": 28.34, "ltp": 0.4, "chg": -0.2}, "put": {"oi": null, "chg_oi": null, "volume": null, "iv": null, "ltp": null, "chg": null}}]}</script>
 <script>
 function fmt(n){ if(n===null||n===undefined) return '-'; return Number(n).toLocaleString('en-IN'); }
 function pct(n){ return (n>0?'+':'') + n.toFixed(2) + '%'; }
+
+let currentData = null;
+let uploadedChainPrev = null;
+let uploadedChainLive = null;
+let uploadedParticipants = null;
+
+function parseCSVLine(line){
+  const out=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ inQ=!inQ; continue; }
+    if(c===','&&!inQ){ out.push(cur); cur=''; continue; }
+    cur+=c;
+  }
+  out.push(cur);
+  return out;
+}
+function num(x){
+  if(x===undefined||x===null) return null;
+  x = String(x).replace(/,/g,'').trim();
+  if(x==='-'||x==='') return null;
+  const v = parseFloat(x);
+  return isNaN(v) ? null : v;
+}
+
+function parseOptionChainCSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+  const rows = lines.slice(2).map(parseCSVLine);
+  const chain = [];
+  for(const r of rows){
+    if(r.length < 21) continue;
+    const strike = num(r[11]);
+    if(strike===null) continue;
+    chain.push({
+      strike: strike,
+      call: { oi: num(r[1]), chg_oi: num(r[2]), volume: num(r[3]), iv: num(r[4]), ltp: num(r[5]), chg: num(r[6]) },
+      put:  { oi: num(r[21]), chg_oi: num(r[20]), volume: num(r[19]), iv: num(r[18]), ltp: num(r[17]), chg: num(r[16]) }
+    });
+  }
+  return chain.sort((a,b)=>a.strike-b.strike);
+}
+
+function parseParticipantCSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+  const rows = lines.map(parseCSVLine);
+  const headerIdx = rows.findIndex(r => r[0] && r[0].trim().toLowerCase()==='client type');
+  if(headerIdx===-1) return null;
+  const cols = rows[headerIdx].map(c=>c.trim());
+  const out = {};
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    const type = (r[0]||'').trim();
+    if(!type || type.toUpperCase()==='TOTAL') continue;
+    const rec = {};
+    for(let j=1;j<cols.length;j++){
+      const key = cols[j].trim().toLowerCase().replace(/\s+/g,'_');
+      rec[key] = num(r[j]);
+    }
+    const futLong = rec['future_index_long'] || 0;
+    const futShort = rec['future_index_short'] || 0;
+    let posture;
+    if(futLong > futShort*1.15) posture = 'net long futures';
+    else if(futShort > futLong*1.15) posture = 'net short futures';
+    else posture = 'roughly balanced';
+    rec.future_index_long = futLong; rec.future_index_short = futShort;
+    rec.posture = posture;
+    out[type] = rec;
+  }
+  return out;
+}
+
+function computeChainSummary(chain, spot){
+  let totalCallOi=0, totalPutOi=0;
+  let maxCall={oi:-1,strike:null}, maxPut={oi:-1,strike:null};
+  const near = chain.filter(r => Math.abs(r.strike-spot) <= 600);
+  let freshPutW={chg:-1e15,strike:null}, freshCallW={chg:-1e15,strike:null};
+  let callUnwind={chg:1e15,strike:null};
+  for(const r of chain){
+    totalCallOi += r.call.oi||0;
+    totalPutOi += r.put.oi||0;
+    if((r.call.oi||0) > maxCall.oi){ maxCall={oi:r.call.oi, strike:r.strike}; }
+    if((r.put.oi||0) > maxPut.oi){ maxPut={oi:r.put.oi, strike:r.strike}; }
+  }
+  for(const r of near){
+    if((r.put.chg_oi||-1e15) > freshPutW.chg){ freshPutW={chg:r.put.chg_oi, strike:r.strike}; }
+    if((r.call.chg_oi||-1e15) > freshCallW.chg){ freshCallW={chg:r.call.chg_oi, strike:r.strike}; }
+    if((r.call.chg_oi||1e15) < callUnwind.chg){ callUnwind={chg:r.call.chg_oi, strike:r.strike}; }
+  }
+  return {
+    total_call_oi: totalCallOi, total_put_oi: totalPutOi,
+    pcr: totalCallOi ? Math.round((totalPutOi/totalCallOi)*100)/100 : null,
+    max_call_oi_strike: maxCall.strike, max_call_oi: maxCall.oi,
+    max_put_oi_strike: maxPut.strike, max_put_oi: maxPut.oi,
+    strongest_fresh_put_writing_strike: freshPutW.strike, strongest_fresh_put_writing_chg: freshPutW.chg,
+    strongest_fresh_call_writing_strike: freshCallW.strike, strongest_fresh_call_writing_chg: freshCallW.chg,
+    call_unwind_strike: callUnwind.strike, call_unwind_chg: callUnwind.chg
+  };
+}
+
+function nearestStep(chain){
+  const strikes = chain.map(r=>r.strike).sort((a,b)=>a-b);
+  const diffs = [];
+  for(let i=1;i<strikes.length;i++) diffs.push(strikes[i]-strikes[i-1]);
+  diffs.sort((a,b)=>a-b);
+  return diffs[Math.floor(diffs.length/2)] || 50;
+}
+
+function buildAnalysis(chain, spot, participants, niftyClose){
+  const summary = computeChainSummary(chain, spot);
+  const step = nearestStep(chain);
+
+  const resistanceStrike = summary.strongest_fresh_call_writing_strike || summary.max_call_oi_strike;
+  const supportStrike = summary.strongest_fresh_put_writing_strike || summary.max_put_oi_strike;
+
+  const levels = [];
+  if(summary.max_call_oi_strike) levels.push({strike:summary.max_call_oi_strike, type:'resistance', note:'max call OI ' + fmt(summary.max_call_oi)});
+  if(resistanceStrike && resistanceStrike!==summary.max_call_oi_strike) levels.push({strike:resistanceStrike, type:'resistance', note:'fresh call writing +' + fmt(summary.strongest_fresh_call_writing_chg)});
+  if(supportStrike) levels.push({strike:supportStrike, type:'support', note:'fresh put writing +' + fmt(summary.strongest_fresh_put_writing_chg)});
+  if(summary.max_put_oi_strike && summary.max_put_oi_strike!==supportStrike) levels.push({strike:summary.max_put_oi_strike, type:'support', note:'max put OI ' + fmt(summary.max_put_oi)});
+
+  const callSell = resistanceStrike;
+  const callBuy = callSell + step*2;
+  const putSell = supportStrike;
+  const putBuy = putSell - step*2;
+
+  const bias = summary.pcr===null ? 'insufficient data' : (summary.pcr>1.1 ? 'bullish tilt' : summary.pcr<0.85 ? 'bearish tilt' : 'range, neutral');
+
+  const strategy = {
+    type: 'iron_condor',
+    legs: [
+      {action:'sell', strike: callSell, option:'CE'},
+      {action:'buy', strike: callBuy, option:'CE'},
+      {action:'sell', strike: putSell, option:'PE'},
+      {action:'buy', strike: putBuy, option:'PE'}
+    ],
+    entry_rule: 'after first 15-min candle confirms range, avoid opening volatility',
+    stop_loss_rule: '15-min candle closes beyond ' + fmt(callSell) + ' or below ' + fmt(putSell) + ' with volume',
+    target_rule: '50-60% of collected premium',
+    range_expected: fmt(putSell) + '-' + fmt(callSell)
+  };
+
+  const gap = (spot!==null && niftyClose!==null) ? spot-niftyClose : null;
+  const gapPct = (gap!==null && niftyClose) ? gap/niftyClose*100 : null;
+
+  return {
+    meta: { symbol:'NIFTY', expiry: currentData ? currentData.meta.expiry : '', generated_for: 'uploaded data', data_as_of: 'user upload', last_updated: new Date().toISOString(), note: bias },
+    index_levels: { nifty_prev_close: niftyClose, nifty_prev_close_date:'', gift_nifty_close: spot, gift_nifty_close_note:'', implied_gap_pts: gap, implied_gap_pct: gapPct },
+    chain_summary: summary,
+    levels: levels,
+    participants_aug06: participants || (currentData ? currentData.participants_aug06 : {}),
+    strategy: strategy,
+    option_chain: chain
+  };
+}
+
+function markTag(id, ok, text){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'tag ' + (ok ? 'tag-ok' : 'tag-none');
+}
+
+document.getElementById('fileChainPrev').addEventListener('change', async e => {
+  const f = e.target.files[0]; if(!f) return;
+  uploadedChainPrev = parseOptionChainCSV(await f.text());
+  markTag('tagChainPrev', true, uploadedChainPrev.length + ' strikes loaded');
+});
+document.getElementById('fileChainLive').addEventListener('change', async e => {
+  const f = e.target.files[0]; if(!f) return;
+  uploadedChainLive = parseOptionChainCSV(await f.text());
+  markTag('tagChainLive', true, uploadedChainLive.length + ' strikes loaded');
+});
+document.getElementById('fileParticipant').addEventListener('change', async e => {
+  const f = e.target.files[0]; if(!f) return;
+  const parsed = parseParticipantCSV(await f.text());
+  if(parsed){ uploadedParticipants = parsed; markTag('tagParticipant', true, Object.keys(parsed).length + ' participant types loaded'); }
+  else { markTag('tagParticipant', false, 'could not parse - check format'); }
+});
+
+function applyUploads(){
+  const chain = uploadedChainLive || uploadedChainPrev;
+  if(!chain){ document.getElementById('status').textContent = 'upload at least one option chain CSV first'; return; }
+  const spotIn = num(document.getElementById('inSpot').value);
+  const niftyIn = num(document.getElementById('inNiftyClose').value);
+  const spot = spotIn !== null ? spotIn : (currentData ? currentData.index_levels.gift_nifty_close : chain[Math.floor(chain.length/2)].strike);
+  const niftyClose = niftyIn !== null ? niftyIn : (currentData ? currentData.index_levels.nifty_prev_close : null);
+  const analysis = buildAnalysis(chain, spot, uploadedParticipants, niftyClose);
+  currentData = analysis;
+  render(analysis);
+  document.getElementById('status').textContent = 'recomputed from uploaded data at ' + new Date().toLocaleTimeString();
+}
 
 async function load(){
   document.getElementById('status').textContent = 'loading...';
   try{
     const res = await fetch('data.json?t=' + Date.now());
+    if(!res.ok) throw new Error('fetch failed: ' + res.status);
     const d = await res.json();
+    currentData = d;
     render(d);
-    document.getElementById('status').textContent = 'loaded ' + (d.meta.last_updated || '');
+    document.getElementById('status').textContent = 'loaded from data.json (live fetch)';
   }catch(e){
-    document.getElementById('status').textContent = 'error loading data.json: ' + e.message;
+    const embedded = document.getElementById('embedded-data');
+    if(embedded){
+      const d = JSON.parse(embedded.textContent);
+      currentData = d;
+      render(d);
+      document.getElementById('status').textContent = 'loaded from embedded snapshot (open via GitHub Pages or a local server for live fetch)';
+    } else {
+      document.getElementById('status').textContent = 'error: ' + e.message;
+    }
+  }
+  if(currentData){
+    document.getElementById('inNiftyClose').value = currentData.index_levels.nifty_prev_close ?? '';
+    document.getElementById('inSpot').value = currentData.index_levels.gift_nifty_close ?? '';
   }
 }
 
@@ -127,17 +377,18 @@ function render(d){
     </div>
   `;
 
-  document.getElementById('levels').innerHTML = d.levels.map(l => `
+  const sortedLevels = [...d.levels].sort((a,b)=>b.strike-a.strike);
+  const above = sortedLevels.filter(l=>l.strike>=idx.gift_nifty_close);
+  const below = sortedLevels.filter(l=>l.strike<idx.gift_nifty_close);
+  const rowHtml = l => `
     <div class="level-row ${l.type==='resistance'?'lvl-res':'lvl-sup'}">
       <span>${fmt(l.strike)} ${l.type}</span>
       <span style="color:var(--muted);">${l.note}</span>
-    </div>
-  `).join('') + `
-    <div class="level-row lvl-spot">
-      <span>${fmt(idx.gift_nifty_close)} spot</span>
-      <span>reference</span>
-    </div>
-  `;
+    </div>`;
+  document.getElementById('levels').innerHTML =
+    above.map(rowHtml).join('') +
+    `<div class="level-row lvl-spot"><span>${fmt(idx.gift_nifty_close)} spot</span><span>${d.meta.note || 'reference'}</span></div>` +
+    below.map(rowHtml).join('');
 
   const chain = [...d.option_chain].sort((a,b)=>a.strike-b.strike);
   const spot = idx.gift_nifty_close;
